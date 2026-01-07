@@ -1,0 +1,22 @@
+# Azure deployment outputs
+*.outputs.json
+
+# Environment-specific parameter files with secrets
+*.prod.bicepparam
+*.secret.bicepparam
+
+# Test scripts with actual keys
+*-with-keys.ps1
+
+# Azure CLI outputs
+*.log
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
