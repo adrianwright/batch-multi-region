@@ -13,6 +13,14 @@ param publisherName string = 'AI Platform'
 @description('APIM publisher email')
 param publisherEmail string = 'platform@example.com'
 
+@secure()
+@description('Backend URL for East US 2 foundry (including /openai/v1 path)')
+param foundryEastUS2Url string
+
+@secure()
+@description('Backend URL for West US 3 foundry (including /openai/v1 path)')
+param foundryWestUS3Url string
+
 // Create resource group
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   name: 'rg-apim-${environment}'
@@ -28,6 +36,8 @@ module apimModule 'modules/apim.bicep' = {
     apimName: 'apim-${environment}-${uniqueString(rg.id)}'
     publisherEmail: publisherEmail
     publisherName: publisherName
+    foundryEastUS2Url: foundryEastUS2Url
+    foundryWestUS3Url: foundryWestUS3Url
   }
 }
 

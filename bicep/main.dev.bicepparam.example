@@ -1,0 +1,8 @@
+using './main.bicep'
+
+param environment = 'dev'
+param location = 'eastus'
+param publisherName = 'AI Platform'
+param publisherEmail = 'platform@example.com'
+param foundryEastUS2Url = 'https://your-foundry-east-us-2.openai.azure.com/openai/v1'
+param foundryWestUS3Url = 'https://your-foundry-west-us-3.openai.azure.com/openai/v1'

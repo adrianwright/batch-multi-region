@@ -1,0 +1,16 @@
+{
+  "properties": {
+    "description": "Load balanced pool of foundry backends",
+    "type": "Pool",
+    "pool": {
+      "services": [
+        {
+          "id": "/backends/foundry-batch-sticky-east-us-2"
+        },
+        {
+          "id": "/backends/foundry-batch-sticky-west-us-3"
+        }
+      ]
+    }
+  }
+}

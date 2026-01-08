@@ -2,6 +2,10 @@ param location string
 param apimName string
 param publisherName string
 param publisherEmail string
+@secure()
+param foundryEastUS2Url string
+@secure()
+param foundryWestUS3Url string
 
 resource apim 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
   name: apimName
@@ -26,7 +30,7 @@ resource backendEastUS2 'Microsoft.ApiManagement/service/backends@2023-05-01-pre
   properties: {
     title: 'Foundry Backend - East US 2'
     description: 'Backend for AI Foundry in East US 2 (v1 API)'
-    url: 'https://batch-sticky-east-us-2.openai.azure.com/openai/v1'
+    url: foundryEastUS2Url
     protocol: 'http'
   }
 }
@@ -38,7 +42,7 @@ resource backendWestUS3 'Microsoft.ApiManagement/service/backends@2023-05-01-pre
   properties: {
     title: 'Foundry Backend - West US 3'
     description: 'Backend for AI Foundry in West US 3 (v1 API)'
-    url: 'https://batch-sticky-west-us-3.openai.azure.com/openai/v1'
+    url: foundryWestUS3Url
     protocol: 'http'
   }
 }

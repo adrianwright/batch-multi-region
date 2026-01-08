@@ -4,9 +4,19 @@
 # Environment-specific parameter files with secrets
 *.prod.bicepparam
 *.secret.bicepparam
+*.dev.bicepparam
 
 # Test scripts with actual keys
 *-with-keys.ps1
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+tfplan
+.terraform/
+.terraform.lock.hcl
 
 # Azure CLI outputs
 *.log
