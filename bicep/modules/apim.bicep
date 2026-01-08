@@ -390,114 +390,11 @@ resource stickyApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-
   }
 }
 
-// API for Realtime and Chat with Session Affinity
-resource realtimeChatApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
-  name: 'openai-realtime-chat'
-  parent: apim
-  properties: {
-    displayName: 'OpenAI Realtime & Chat API'
-    apiRevision: '1'
-    description: 'OpenAI Realtime and Chat API with session affinity'
-    subscriptionRequired: true
-    path: 'openai-realtime'
-    protocols: [
-      'https'
-    ]
-  }
-}
-
-// Responses API operation (Azure's recommended API)
-resource responsesOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
-  name: 'responses'
-  parent: realtimeChatApi
-  properties: {
-    displayName: 'Responses API'
-    method: 'POST'
-    urlTemplate: '/responses'
-    description: 'Create a response using Azure Responses API'
-  }
-}
-
-// Chat completions operation
-resource chatCompletionsOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
-  name: 'chat-completions'
-  parent: realtimeChatApi
-  properties: {
-    displayName: 'Chat Completions'
-    method: 'POST'
-    urlTemplate: '/chat/completions'
-    description: 'Create a chat completion'
-  }
-}
-
-// Embeddings operation
-resource embeddingsOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
-  name: 'embeddings'
-  parent: realtimeChatApi
-  properties: {
-    displayName: 'Embeddings'
-    method: 'POST'
-    urlTemplate: '/embeddings'
-    description: 'Create embeddings'
-  }
-}
-
-// Policy for Realtime and Chat API with session affinity
-resource realtimeChatApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  name: 'policy'
-  parent: realtimeChatApi
-  dependsOn: [
-    backendEastUS2
-    backendWestUS3
-  ]
-  properties: {
-    value: '''<policies>
-  <inbound>
-    <base />
-    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
-    <!-- Extract session identifier from header or generate one -->
-    <set-variable name="sessionId" value="@(context.Request.Headers.GetValueOrDefault(&quot;X-Session-Id&quot;, context.Subscription.Key + &quot;:&quot; + context.Request.IpAddress))" />
-    <!-- Lookup backend for this session -->
-    <cache-lookup-value key="@(&quot;session-backend:&quot; + (string)context.Variables[&quot;sessionId&quot;])" variable-name="cachedBackend" caching-type="external" />
-    <choose>
-      <when condition="@(context.Variables.ContainsKey(&quot;cachedBackend&quot;))">
-        <!-- Use cached backend for this session -->
-        <set-backend-service backend-id="@((string)context.Variables[&quot;cachedBackend&quot;])" />
-      </when>
-      <otherwise>
-        <!-- First request for this session: randomly select a backend -->
-        <set-variable name="selectedBackend" value="@(new Random().Next(2) == 0 ? &quot;foundry-batch-sticky-east-us-2&quot; : &quot;foundry-batch-sticky-west-us-3&quot;)" />
-        <set-backend-service backend-id="@((string)context.Variables[&quot;selectedBackend&quot;])" />
-        <!-- Store the selected backend for this session (24 hour TTL) -->
-        <cache-store-value key="@(&quot;session-backend:&quot; + (string)context.Variables[&quot;sessionId&quot;])" value="@((string)context.Variables[&quot;selectedBackend&quot;])" duration="86400" caching-type="external" />
-      </otherwise>
-    </choose>
-  </inbound>
-  <backend>
-    <base />
-  </backend>
-  <outbound>
-    <base />
-    <!-- Return the session ID to the client for subsequent requests -->
-    <set-header name="X-Session-Id" exists-action="override">
-      <value>@((string)context.Variables[&quot;sessionId&quot;])</value>
-    </set-header>
-    <set-header name="X-Backend-Region" exists-action="override">
-      <value>@(context.Request.Url.Host.Contains(&quot;east-us-2&quot;) ? &quot;eastus2&quot; : context.Request.Url.Host.Contains(&quot;west-us-3&quot;) ? &quot;westus3&quot; : &quot;unknown&quot;)</value>
-    </set-header>
-  </outbound>
-  <on-error>
-    <base />
-  </on-error>
-</policies>'''
-  }
-}
-
 output apimName string = apim.name
 output apimGatewayUrl string = apim.properties.gatewayUrl
 output apimId string = apim.id
 output batchApiPath string = batchApi.properties.path
-output realtimeChatApiPath string = realtimeChatApi.properties.path
+output stickyBatchApiPath string = stickyBatchApi.properties.path
 output apimPrincipalId string = apim.identity.principalId
 output foundryEastUS2Id string = '/subscriptions/${subscription().subscriptionId}/resourceGroups/rg-batch-sticky/providers/Microsoft.CognitiveServices/accounts/batch-sticky-east-us-2'
 output foundryWestUS3Id string = '/subscriptions/${subscription().subscriptionId}/resourceGroups/rg-batch-sticky/providers/Microsoft.CognitiveServices/accounts/batch-sticky-west-us-3'

@@ -58,7 +58,7 @@ module "apim_apis" {
   depends_on = [module.apim]
 }
 
-# Deploy Sticky Batch API and Realtime/Chat API (Redis-based affinity)
+# Deploy Sticky Batch API (Redis-based affinity)
 module "apim_sticky_apis" {
   source = "./modules/apim-sticky-apis"
 

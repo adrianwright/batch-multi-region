@@ -32,8 +32,3 @@ output "sticky_batch_api_path" {
   description = "Sticky Batch API path"
   value       = module.apim_sticky_apis.sticky_batch_api_path
 }
-
-output "realtime_chat_api_path" {
-  description = "Realtime Chat API path"
-  value       = module.apim_sticky_apis.realtime_chat_api_path
-}
