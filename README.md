@@ -67,6 +67,7 @@ Batch submit → Cookie sent → East US 2 ✓
 <td valign="top">
 
 - Requires cookie support
+- May only be available in v1 SKUs
 - Client must maintain session
 - Cookie can expire/be lost
 - Not suitable for distributed clients
