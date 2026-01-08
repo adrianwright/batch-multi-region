@@ -25,8 +25,8 @@ resource backendEastUS2 'Microsoft.ApiManagement/service/backends@2023-05-01-pre
   parent: apim
   properties: {
     title: 'Foundry Backend - East US 2'
-    description: 'Backend for AI Foundry in East US 2'
-    url: 'https://batch-sticky-east-us-2.cognitiveservices.azure.com'
+    description: 'Backend for AI Foundry in East US 2 (v1 API)'
+    url: 'https://batch-sticky-east-us-2.openai.azure.com/openai/v1'
     protocol: 'http'
   }
 }
@@ -37,8 +37,8 @@ resource backendWestUS3 'Microsoft.ApiManagement/service/backends@2023-05-01-pre
   parent: apim
   properties: {
     title: 'Foundry Backend - West US 3'
-    description: 'Backend for AI Foundry in West US 3'
-    url: 'https://batch-sticky-west-us-3.cognitiveservices.azure.com'
+    description: 'Backend for AI Foundry in West US 3 (v1 API)'
+    url: 'https://batch-sticky-west-us-3.openai.azure.com/openai/v1'
     protocol: 'http'
   }
 }
@@ -92,7 +92,7 @@ resource submitBatchOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-
   properties: {
     displayName: 'Submit Batch'
     method: 'POST'
-    urlTemplate: '/openai/batches'
+    urlTemplate: '/batches'
     description: 'Submit a new batch job'
   }
 }
@@ -104,7 +104,7 @@ resource getBatchOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-
   properties: {
     displayName: 'Get Batch'
     method: 'GET'
-    urlTemplate: '/openai/batches/{batch_id}'
+    urlTemplate: '/batches/{batch_id}'
     description: 'Get batch job status'
     templateParameters: [
       {
@@ -123,7 +123,7 @@ resource cancelBatchOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-
   properties: {
     displayName: 'Cancel Batch'
     method: 'POST'
-    urlTemplate: '/openai/batches/{batch_id}/cancel'
+    urlTemplate: '/batches/{batch_id}/cancel'
     description: 'Cancel a batch job'
     templateParameters: [
       {
@@ -142,7 +142,7 @@ resource listBatchesOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-
   properties: {
     displayName: 'List Batches'
     method: 'GET'
-    urlTemplate: '/openai/batches'
+    urlTemplate: '/batches'
     description: 'List all batch jobs'
   }
 }
@@ -154,7 +154,7 @@ resource uploadFileOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-0
   properties: {
     displayName: 'Upload File'
     method: 'POST'
-    urlTemplate: '/openai/files'
+    urlTemplate: '/files'
     description: 'Upload a file for batch processing'
   }
 }
@@ -166,7 +166,7 @@ resource listFilesOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-01
   properties: {
     displayName: 'List Files'
     method: 'GET'
-    urlTemplate: '/openai/files'
+    urlTemplate: '/files'
     description: 'List all uploaded files'
   }
 }
@@ -178,7 +178,7 @@ resource getFileOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-p
   properties: {
     displayName: 'Get File'
     method: 'GET'
-    urlTemplate: '/openai/files/{file_id}'
+    urlTemplate: '/files/{file_id}'
     description: 'Get file details'
     templateParameters: [
       {
@@ -197,7 +197,7 @@ resource deleteFileOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-0
   properties: {
     displayName: 'Delete File'
     method: 'DELETE'
-    urlTemplate: '/openai/files/{file_id}'
+    urlTemplate: '/files/{file_id}'
     description: 'Delete a file'
     templateParameters: [
       {
@@ -216,7 +216,7 @@ resource getFileContentOp 'Microsoft.ApiManagement/service/apis/operations@2023-
   properties: {
     displayName: 'Get File Content'
     method: 'GET'
-    urlTemplate: '/openai/files/{file_id}/content'
+    urlTemplate: '/files/{file_id}/content'
     description: 'Download file content'
     templateParameters: [
       {
@@ -263,7 +263,7 @@ resource stickyUploadFileOp 'Microsoft.ApiManagement/service/apis/operations@202
   properties: {
     displayName: 'Upload File (Sticky)'
     method: 'POST'
-    urlTemplate: '/openai/files'
+    urlTemplate: '/files'
     description: 'Upload a file and store backend affinity'
   }
 }
@@ -275,7 +275,7 @@ resource stickySubmitBatchOp 'Microsoft.ApiManagement/service/apis/operations@20
   properties: {
     displayName: 'Submit Batch (Sticky)'
     method: 'POST'
-    urlTemplate: '/openai/batches'
+    urlTemplate: '/batches'
     description: 'Submit a batch job to the same region as the file'
   }
 }
@@ -287,7 +287,7 @@ resource stickyGetBatchOp 'Microsoft.ApiManagement/service/apis/operations@2023-
   properties: {
     displayName: 'Get Batch (Sticky)'
     method: 'GET'
-    urlTemplate: '/openai/batches/{batch_id}'
+    urlTemplate: '/batches/{batch_id}'
     description: 'Get batch status from the same region'
     templateParameters: [
       {
@@ -386,10 +386,114 @@ resource stickyApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-
   }
 }
 
+// API for Realtime and Chat with Session Affinity
+resource realtimeChatApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  name: 'openai-realtime-chat'
+  parent: apim
+  properties: {
+    displayName: 'OpenAI Realtime & Chat API'
+    apiRevision: '1'
+    description: 'OpenAI Realtime and Chat API with session affinity'
+    subscriptionRequired: true
+    path: 'openai-realtime'
+    protocols: [
+      'https'
+    ]
+  }
+}
+
+// Responses API operation (Azure's recommended API)
+resource responsesOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
+  name: 'responses'
+  parent: realtimeChatApi
+  properties: {
+    displayName: 'Responses API'
+    method: 'POST'
+    urlTemplate: '/responses'
+    description: 'Create a response using Azure Responses API'
+  }
+}
+
+// Chat completions operation
+resource chatCompletionsOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
+  name: 'chat-completions'
+  parent: realtimeChatApi
+  properties: {
+    displayName: 'Chat Completions'
+    method: 'POST'
+    urlTemplate: '/chat/completions'
+    description: 'Create a chat completion'
+  }
+}
+
+// Embeddings operation
+resource embeddingsOp 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
+  name: 'embeddings'
+  parent: realtimeChatApi
+  properties: {
+    displayName: 'Embeddings'
+    method: 'POST'
+    urlTemplate: '/embeddings'
+    description: 'Create embeddings'
+  }
+}
+
+// Policy for Realtime and Chat API with session affinity
+resource realtimeChatApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  name: 'policy'
+  parent: realtimeChatApi
+  dependsOn: [
+    backendEastUS2
+    backendWestUS3
+  ]
+  properties: {
+    value: '''<policies>
+  <inbound>
+    <base />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+    <!-- Extract session identifier from header or generate one -->
+    <set-variable name="sessionId" value="@(context.Request.Headers.GetValueOrDefault(&quot;X-Session-Id&quot;, context.Subscription.Key + &quot;:&quot; + context.Request.IpAddress))" />
+    <!-- Lookup backend for this session -->
+    <cache-lookup-value key="@(&quot;session-backend:&quot; + (string)context.Variables[&quot;sessionId&quot;])" variable-name="cachedBackend" caching-type="external" />
+    <choose>
+      <when condition="@(context.Variables.ContainsKey(&quot;cachedBackend&quot;))">
+        <!-- Use cached backend for this session -->
+        <set-backend-service backend-id="@((string)context.Variables[&quot;cachedBackend&quot;])" />
+      </when>
+      <otherwise>
+        <!-- First request for this session: randomly select a backend -->
+        <set-variable name="selectedBackend" value="@(new Random().Next(2) == 0 ? &quot;foundry-batch-sticky-east-us-2&quot; : &quot;foundry-batch-sticky-west-us-3&quot;)" />
+        <set-backend-service backend-id="@((string)context.Variables[&quot;selectedBackend&quot;])" />
+        <!-- Store the selected backend for this session (24 hour TTL) -->
+        <cache-store-value key="@(&quot;session-backend:&quot; + (string)context.Variables[&quot;sessionId&quot;])" value="@((string)context.Variables[&quot;selectedBackend&quot;])" duration="86400" caching-type="external" />
+      </otherwise>
+    </choose>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+    <!-- Return the session ID to the client for subsequent requests -->
+    <set-header name="X-Session-Id" exists-action="override">
+      <value>@((string)context.Variables[&quot;sessionId&quot;])</value>
+    </set-header>
+    <set-header name="X-Backend-Region" exists-action="override">
+      <value>@(context.Request.Url.Host.Contains(&quot;east-us-2&quot;) ? &quot;eastus2&quot; : context.Request.Url.Host.Contains(&quot;west-us-3&quot;) ? &quot;westus3&quot; : &quot;unknown&quot;)</value>
+    </set-header>
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>'''
+  }
+}
+
 output apimName string = apim.name
 output apimGatewayUrl string = apim.properties.gatewayUrl
 output apimId string = apim.id
 output batchApiPath string = batchApi.properties.path
+output realtimeChatApiPath string = realtimeChatApi.properties.path
 output apimPrincipalId string = apim.identity.principalId
 output foundryEastUS2Id string = '/subscriptions/${subscription().subscriptionId}/resourceGroups/rg-batch-sticky/providers/Microsoft.CognitiveServices/accounts/batch-sticky-east-us-2'
 output foundryWestUS3Id string = '/subscriptions/${subscription().subscriptionId}/resourceGroups/rg-batch-sticky/providers/Microsoft.CognitiveServices/accounts/batch-sticky-west-us-3'
