@@ -48,6 +48,85 @@ resource "azurerm_api_management" "apim" {
   }
 }
 
+# Log Analytics workspace for APIM diagnostics
+resource "azurerm_log_analytics_workspace" "apim" {
+  name                = "log-${var.apim_name}"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+# Application Insights (workspace-based) for APIM
+resource "azurerm_application_insights" "apim" {
+  name                = "appi-${var.apim_name}"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  workspace_id        = azurerm_log_analytics_workspace.apim.id
+  application_type    = "web"
+}
+
+# APIM logger pointing to Application Insights
+resource "azurerm_api_management_logger" "appinsights" {
+  name                = "appinsights-logger"
+  api_management_name = azurerm_api_management.apim.name
+  resource_group_name = var.resource_group_name
+  resource_id         = azurerm_application_insights.apim.id
+
+  application_insights {
+    instrumentation_key = azurerm_application_insights.apim.instrumentation_key
+  }
+}
+
+# APIM-level Application Insights diagnostic
+resource "azurerm_api_management_diagnostic" "appinsights" {
+  identifier               = "applicationinsights"
+  resource_group_name      = var.resource_group_name
+  api_management_name      = azurerm_api_management.apim.name
+  api_management_logger_id = azurerm_api_management_logger.appinsights.id
+
+  sampling_percentage       = 100.0
+  always_log_errors         = true
+  log_client_ip             = true
+  verbosity                 = "information"
+  http_correlation_protocol = "W3C"
+
+  frontend_request {
+    body_bytes = 0
+    headers_to_log = []
+  }
+
+  frontend_response {
+    body_bytes = 0
+    headers_to_log = []
+  }
+
+  backend_request {
+    body_bytes = 0
+    headers_to_log = []
+  }
+
+  backend_response {
+    body_bytes = 0
+    headers_to_log = []
+  }
+}
+
+# Diagnostic settings: send all APIM logs and metrics to Log Analytics
+resource "azurerm_monitor_diagnostic_setting" "apim" {
+  name                       = "diag-to-law"
+  target_resource_id         = azurerm_api_management.apim.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.apim.id
+
+  enabled_log {
+    category_group = "allLogs"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
+}
+
 # Backend for the first foundry (East US 2)
 resource "azurerm_api_management_backend" "east_us_2" {
   name                = "foundry-batch-sticky-east-us-2"
@@ -126,4 +205,22 @@ output "backend_west_us_3_id" {
 
 output "backend_pool_id" {
   value = azapi_resource.pool.id
+}
+
+output "log_analytics_workspace_id" {
+  value = azurerm_log_analytics_workspace.apim.id
+}
+
+output "application_insights_id" {
+  value = azurerm_application_insights.apim.id
+}
+
+output "application_insights_instrumentation_key" {
+  value     = azurerm_application_insights.apim.instrumentation_key
+  sensitive = true
+}
+
+output "application_insights_connection_string" {
+  value     = azurerm_application_insights.apim.connection_string
+  sensitive = true
 }

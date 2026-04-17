@@ -9,13 +9,13 @@ variable "foundry_resource_ids" {
 }
 
 variable "role_definition_name" {
-  description = "Role definition name (e.g., 'Cognitive Services OpenAI User')"
+  description = "Role definition name (e.g., 'Cognitive Services OpenAI Contributor')"
   type        = string
-  default     = "Cognitive Services OpenAI User"
+  default     = "Cognitive Services OpenAI Contributor"
 }
 
-# Cognitive Services OpenAI User role
-data "azurerm_role_definition" "cognitive_services_openai_user" {
+# Cognitive Services OpenAI Contributor role
+data "azurerm_role_definition" "cognitive_services_openai_contributor" {
   name = var.role_definition_name
 }
 
@@ -24,7 +24,7 @@ resource "azurerm_role_assignment" "apim_to_foundry" {
   for_each = toset(var.foundry_resource_ids)
 
   scope                            = each.value
-  role_definition_id               = data.azurerm_role_definition.cognitive_services_openai_user.id
+  role_definition_id               = data.azurerm_role_definition.cognitive_services_openai_contributor.id
   principal_id                     = var.apim_principal_id
   principal_type                   = "ServicePrincipal"
   skip_service_principal_aad_check = true

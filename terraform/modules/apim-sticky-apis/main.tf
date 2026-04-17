@@ -79,11 +79,25 @@ resource "azurerm_api_management_api_policy" "sticky_batch_api_policy" {
 <policies>
   <inbound>
     <base />
+
+    <!--
+      Backend selection uses inline string[] local variables inside expressions.
+      We CANNOT persist string[] or List<string> via <set-variable> because APIM
+      policy validation only permits scalar return types (string, int, bool,
+      JToken/JObject/JArray, etc.) for stored context variables. Storing a
+      collection there fails with:
+          Expression return type 'System.String[]' is not allowed.
+      Adding a new backend = add a string literal to every inline array below.
+    -->
+
     <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
     <choose>
       <!-- File Upload: Random backend selection and store in Redis -->
       <when condition="@(context.Operation.Method == &quot;POST&quot; &amp;&amp; context.Request.Url.Path.EndsWith(&quot;/files&quot;))">
-        <set-variable name="selectedBackend" value="@(new Random().Next(2) == 0 ? &quot;foundry-batch-sticky-east-us-2&quot; : &quot;foundry-batch-sticky-west-us-3&quot;)" />
+        <set-variable name="selectedBackend" value="@{
+          var backends = new [] { &quot;foundry-batch-sticky-east-us-2&quot;, &quot;foundry-batch-sticky-west-us-3&quot; };
+          return backends[new Random().Next(backends.Length)];
+        }" />
         <set-backend-service backend-id="@((string)context.Variables[&quot;selectedBackend&quot;])" />
       </when>
       <!-- Batch Submit: Lookup backend by file_id from request body -->
@@ -93,11 +107,15 @@ resource "azurerm_api_management_api_policy" "sticky_batch_api_policy" {
         <cache-lookup-value key="@(&quot;backend:&quot; + (string)context.Variables[&quot;fileId&quot;])" variable-name="cachedBackend" caching-type="external" />
         <choose>
           <when condition="@(context.Variables.ContainsKey(&quot;cachedBackend&quot;))">
-            <set-backend-service backend-id="@((string)context.Variables[&quot;cachedBackend&quot;])" />
+            <set-variable name="selectedBackend" value="@((string)context.Variables[&quot;cachedBackend&quot;])" />
+            <set-backend-service backend-id="@((string)context.Variables[&quot;selectedBackend&quot;])" />
           </when>
           <otherwise>
             <!-- Fallback to random if not found -->
-            <set-variable name="selectedBackend" value="@(new Random().Next(2) == 0 ? &quot;foundry-batch-sticky-east-us-2&quot; : &quot;foundry-batch-sticky-west-us-3&quot;)" />
+            <set-variable name="selectedBackend" value="@{
+              var backends = new [] { &quot;foundry-batch-sticky-east-us-2&quot;, &quot;foundry-batch-sticky-west-us-3&quot; };
+              return backends[new Random().Next(backends.Length)];
+            }" />
             <set-backend-service backend-id="@((string)context.Variables[&quot;selectedBackend&quot;])" />
           </otherwise>
         </choose>
@@ -108,18 +126,23 @@ resource "azurerm_api_management_api_policy" "sticky_batch_api_policy" {
         <cache-lookup-value key="@(&quot;backend:&quot; + (string)context.Variables[&quot;batchId&quot;])" variable-name="cachedBackend" caching-type="external" />
         <choose>
           <when condition="@(context.Variables.ContainsKey(&quot;cachedBackend&quot;))">
-            <set-backend-service backend-id="@((string)context.Variables[&quot;cachedBackend&quot;])" />
+            <set-variable name="selectedBackend" value="@((string)context.Variables[&quot;cachedBackend&quot;])" />
+            <set-backend-service backend-id="@((string)context.Variables[&quot;selectedBackend&quot;])" />
           </when>
           <otherwise>
             <!-- Fallback to random if not found -->
-            <set-variable name="selectedBackend" value="@(new Random().Next(2) == 0 ? &quot;foundry-batch-sticky-east-us-2&quot; : &quot;foundry-batch-sticky-west-us-3&quot;)" />
+            <set-variable name="selectedBackend" value="@{
+              var backends = new [] { &quot;foundry-batch-sticky-east-us-2&quot;, &quot;foundry-batch-sticky-west-us-3&quot; };
+              return backends[new Random().Next(backends.Length)];
+            }" />
             <set-backend-service backend-id="@((string)context.Variables[&quot;selectedBackend&quot;])" />
           </otherwise>
         </choose>
       </when>
       <otherwise>
         <!-- Default: use first backend -->
-        <set-backend-service backend-id="foundry-batch-sticky-east-us-2" />
+        <set-variable name="selectedBackend" value="@(&quot;foundry-batch-sticky-east-us-2&quot;)" />
+        <set-backend-service backend-id="@((string)context.Variables[&quot;selectedBackend&quot;])" />
       </otherwise>
     </choose>
   </inbound>
@@ -142,8 +165,7 @@ resource "azurerm_api_management_api_policy" "sticky_batch_api_policy" {
       <when condition="@(context.Operation.Method == &quot;POST&quot; &amp;&amp; context.Request.Url.Path.EndsWith(&quot;/batches&quot;) &amp;&amp; context.Response.StatusCode == 200)">
         <set-variable name="responseBody" value="@(context.Response.Body.As&lt;JObject&gt;(preserveContent: true))" />
         <set-variable name="batchId" value="@(((JObject)context.Variables[&quot;responseBody&quot;])[&quot;id&quot;].ToString())" />
-        <set-variable name="usedBackend" value="@(context.Variables.ContainsKey(&quot;cachedBackend&quot;) ? (string)context.Variables[&quot;cachedBackend&quot;] : (string)context.Variables[&quot;selectedBackend&quot;])" />
-        <cache-store-value key="@(&quot;backend:&quot; + (string)context.Variables[&quot;batchId&quot;])" value="@((string)context.Variables[&quot;usedBackend&quot;])" duration="86400" caching-type="external" />
+        <cache-store-value key="@(&quot;backend:&quot; + (string)context.Variables[&quot;batchId&quot;])" value="@((string)context.Variables[&quot;selectedBackend&quot;])" duration="86400" caching-type="external" />
       </when>
     </choose>
   </outbound>
